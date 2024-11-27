@@ -4,6 +4,19 @@ use std::fmt::Formatter;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
+#[derive(Debug, Deserialize)]
+pub struct CreateSubscriptionRequest {
+    pub wallet_address: String,
+    pub to_token: String,
+    pub from_token: Vec<String>,
+    pub percentage: Vec<i16>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CreateSubscriptionResponse {
+    pub wallet_address: String,
+}
+
 #[derive(sqlx::Type)]
 pub struct TimeStamptz(pub OffsetDateTime);
 
