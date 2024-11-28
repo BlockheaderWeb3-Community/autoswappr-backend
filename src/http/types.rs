@@ -4,6 +4,28 @@ use std::fmt::Formatter;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
+#[derive(Debug, Deserialize)]
+pub struct ActivityLogGetRequest {
+    pub cursor: Option<String>,
+    pub limit: Option<i32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ActivityLogData {
+    pub wallet_address: String,
+    pub from_token: String,
+    pub to_token: String,
+    pub amount_from: i64,
+    pub amount_to: i64,
+    pub created_at: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ActivityLogGetResponse {
+    pub transactions: Vec<ActivityLogData>,
+}
+
+
 #[derive(sqlx::Type)]
 pub struct TimeStamptz(pub OffsetDateTime);
 
