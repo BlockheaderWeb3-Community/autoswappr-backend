@@ -26,6 +26,7 @@ pub async fn log_retrieval(
             to_token,
             amount_from,
             amount_to,
+            percentage,
             TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SSZ') AS created_at 
         FROM transactions_log
         WHERE created_at < $1::TIMESTAMPTZ
@@ -47,6 +48,7 @@ pub async fn log_retrieval(
                 wallet_address: row.wallet_address,
                 from_token: row.from_token,
                 to_token: row.to_token,
+                percentage: row.percentage,
                 amount_from: row.amount_from,
                 amount_to: row.amount_to,
                 created_at: row.created_at,

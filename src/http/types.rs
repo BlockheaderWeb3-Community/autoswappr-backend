@@ -16,6 +16,7 @@ pub struct ActivityLogData {
     pub wallet_address: String,
     pub from_token: String,
     pub to_token: String,
+    pub percentage: i8,
     pub amount_from: i64,
     pub amount_to: i64,
     pub created_at: String,
