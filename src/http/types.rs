@@ -1,5 +1,6 @@
 use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use sqlx::FromRow;
 use std::fmt::Formatter;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
@@ -10,7 +11,7 @@ pub struct ActivityLogGetRequest {
     pub limit: Option<i32>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(FromRow, Debug, Serialize)]
 pub struct ActivityLogData {
     pub wallet_address: String,
     pub from_token: String,
@@ -23,8 +24,8 @@ pub struct ActivityLogData {
 #[derive(Debug, Serialize)]
 pub struct ActivityLogGetResponse {
     pub transactions: Vec<ActivityLogData>,
+    pub next_cursor: Option<String>,
 }
-
 
 #[derive(sqlx::Type)]
 pub struct TimeStamptz(pub OffsetDateTime);

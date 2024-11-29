@@ -16,7 +16,7 @@ struct Pagination {
 
 #[tokio::test]
 async fn test_log_retrieval() {
-    let app = TestApp::new().await;  // 2024-11-24T10:30:00Z
+    let app = TestApp::new().await; // 2024-11-24T10:30:00Z
     let req = Request::get("/log_retrieval?cursor=2024-11-28T12:02:49Z&limit=10")
         .body(Body::empty())
         .unwrap();
