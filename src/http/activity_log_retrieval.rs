@@ -27,7 +27,6 @@ pub async fn log_retrieval(
 
     let limit = query_params.limit.unwrap_or(10);
 
-
     let rows: Vec<ActivityLogData> = sqlx::query_as::<_, ActivityLogData>(
         r#"
         SELECT 
