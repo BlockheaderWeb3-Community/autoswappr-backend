@@ -4,7 +4,8 @@ use axum::Json;
 use serde_json::{json, Value};
 
 use crate::api_error::ApiError;
-
+use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
 use super::types::{ActivityLogData, ActivityLogGetRequest, ActivityLogGetResponse};
 
 pub async fn log_retrieval(
@@ -13,10 +14,25 @@ pub async fn log_retrieval(
 ) -> Result<Json<Value>, ApiError> {
     // println!("\nLog Retrieval: {:?}\n", query_params);
 
-    let cursor = query_params
-        .cursor
-        .ok_or_else(|| ApiError::InvalidRequest("Missing cursor".into()))?;
+    // Add default date if no cursor is provided
+    let cursor = 
+    match query_params.cursor {
+        Some(cursor1) => 
+            cursor1,
+        
+        None => {
+            let now = OffsetDateTime::now_utc();
+            let formatted = now.format(&Rfc3339).unwrap();
+            formatted
+            
+
+        }
+        
+    };
+
+    
     let limit = query_params.limit.unwrap_or(10);
+
 
     let rows: Vec<ActivityLogData> = sqlx::query_as::<_, ActivityLogData>(
         r#"
@@ -25,8 +41,8 @@ pub async fn log_retrieval(
             from_token,
             to_token,
             amount_from,
-            amount_to,
             percentage,
+            amount_to,
             TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SSZ') AS created_at 
         FROM transactions_log
         WHERE created_at < $1::TIMESTAMPTZ
