@@ -20,8 +20,7 @@ pub async fn log_retrieval(
 
         None => {
             let now = OffsetDateTime::now_utc();
-            let formatted = now.format(&Rfc3339).unwrap();
-            formatted
+            now.format(&Rfc3339).unwrap()
         }
     };
 
@@ -47,7 +46,7 @@ pub async fn log_retrieval(
     .bind(limit)
     .fetch_all(&app_state.db.pool)
     .await
-    .map_err(|err| ApiError::DatabaseError(err))?;
+    .map_err(ApiError::DatabaseError)?;
 
     // Map results to the response data structure
     let mut response_data: ActivityLogGetResponse = ActivityLogGetResponse {
