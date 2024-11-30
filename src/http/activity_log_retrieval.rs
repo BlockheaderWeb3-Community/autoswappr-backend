@@ -15,8 +15,11 @@ pub async fn log_retrieval(
     // println!("\nLog Retrieval: {:?}\n", query_params);
 
     // Add default date if no cursor is provided
-    let cursor = match query_params.cursor {
-        Some(cursor1) => cursor1,
+    let cursor: String = match query_params.cursor {
+        Some(cursor1) => match OffsetDateTime::parse(&cursor1, &Rfc3339) {
+            Ok(cur) => cur.format(&Rfc3339).unwrap(),
+            Err(_) => return Err(ApiError::InvalidRequest("Invalid cursor".to_string())),
+        },
 
         None => {
             let now = OffsetDateTime::now_utc();
@@ -24,8 +27,19 @@ pub async fn log_retrieval(
         }
     };
 
-    let limit = query_params.limit.unwrap_or(10);
+    let limit = match query_params.limit {
+        Some(l) => {
+            if !(1..=100).contains(&l) {
+                return Err(ApiError::InvalidRequest(
+                    "Limit must be a number between 1 and 100".to_string(),
+                ));
+            }
+            l
+        }
+        None => 10,
+    };
 
+    println!("Limit: {}", limit);
     let rows: Vec<ActivityLogData> = sqlx::query_as::<_, ActivityLogData>(
         r#"
         SELECT 

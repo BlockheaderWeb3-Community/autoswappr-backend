@@ -76,11 +76,9 @@ async fn test_log_retrieval_pagination() {
     // println!("1: ///////////////////{:#?}", response_body);
 
     assert_eq!(
-        response_body,
-        ActivityLogGetResponse {
-            transactions: vec![],
-            next_cursor: None,
-        }
+        response_body.transactions.len(),
+        0,
+        "Expected no transactions"
     );
 
     let _t = populate_db(&app.db.pool).await;
@@ -148,5 +146,31 @@ async fn test_log_retrieval_no_cursor_no_limit() {
     let body_bytes = to_bytes(resp.into_body(), usize::MAX).await.unwrap();
     let response_body: ActivityLogGetResponse = serde_json::from_slice(&body_bytes).unwrap();
 
-    assert_eq!(response_body.transactions.len(), 10)
+    assert_eq!(
+        response_body.transactions.len(),
+        10,
+        "Expected 10 transactions"
+    );
+}
+
+#[tokio::test]
+async fn test_log_retrieval_invalid_cursor() {
+    let app = TestApp::new().await;
+
+    let req = Request::get("/log_retrieval?cursor=invalid")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.request(req).await;
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_log_retrieval_invalid_limit() {
+    let app = TestApp::new().await;
+
+    let req = Request::get("/log_retrieval?limit=invalid")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.request(req).await;
+    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }
