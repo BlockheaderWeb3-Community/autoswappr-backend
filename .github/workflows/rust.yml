@@ -7,6 +7,7 @@ on:
       - "README.md"
       - Dockerfile
   pull_request:
+    types: ["opened", "synchronize", "reopened"]
     branches: ["main"]
     paths-ignore:
       - "README.md"
@@ -15,6 +16,8 @@ on:
 env:
   CARGO_TERM_COLOR: always
   DATABASE_URL: postgres://postgres:password@localhost:5432/autoswappr
+  SQLX_VERSION: 0.8.2
+  SQLX_FEATURES: "rustls,postgres"
 
 jobs:
   test:
@@ -22,7 +25,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        image: postgres:17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -36,23 +39,24 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-          components: rustfmt, clippy
+        uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - uses: Swatinem/rust-cache@v2
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli
+          --version=${{ env.SQLX_VERSION }}
+          --features ${{ env.SQLX_FEATURES }}
+          --no-default-features
+          --locked
 
-      - name: Check formatting
-        run: cargo fmt -- --check
+      - name: Set executable permissions
+        run: chmod +x ./scripts/init_db.sh
 
-      - name: Lint with clippy
-        run: cargo clippy -- -D warnings
+      - name: Migrate DB
+        run: |
+          SKIP_DOCKER=true ./scripts/init_db.sh
 
       - name: Run tests
         run: cargo test --verbose
@@ -62,6 +66,32 @@ jobs:
           DATABASE_POOL_MAX_SIZE: 50
           DATABASE_NAME: autoswappr
 
-      - name: Build
-        run: cargo build --release
-        if: github.ref == 'refs/heads/main'
+      - name: Fresh queries
+        run: cargo sqlx prepare
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt
+      - name: Strict formatting
+        run: cargo fmt --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    env:
+      SQLX_OFFLINE: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
+
+      - name: Linting
+        run: cargo clippy -- -D warnings

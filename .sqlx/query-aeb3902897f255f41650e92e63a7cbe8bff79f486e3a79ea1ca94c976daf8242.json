@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO swap_subscription_from_token\n            (wallet_address, from_token, percentage)\n            VALUES ($1, $2, $3)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aeb3902897f255f41650e92e63a7cbe8bff79f486e3a79ea1ca94c976daf8242"
+}

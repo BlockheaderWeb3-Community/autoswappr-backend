@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM swap_subscription_from_token\n        WHERE wallet_address = $1 AND from_token = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "60cf10b65b5cc8abab0299b68665ffb8889ba426863629037bfd651f22486767"
+}

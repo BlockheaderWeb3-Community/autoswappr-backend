@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO swap_subscription (wallet_address, to_token, is_active)\n        VALUES ($1, $2, true)\n        ON CONFLICT (wallet_address)\n        DO UPDATE SET to_token = $2, is_active = true, updated_at = NOW()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "347456aadfedc0d0da6320f15c6f4370b699a07cf05126531cfd3acb8c43daa4"
+}

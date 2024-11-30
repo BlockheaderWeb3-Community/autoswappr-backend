@@ -6,26 +6,16 @@ use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
 #[derive(Debug, Deserialize)]
-pub struct ActivityLogGetRequest {
-    pub cursor: Option<String>,
-    pub limit: Option<i32>,
-}
-
-#[derive(FromRow, Debug, Serialize)]
-pub struct ActivityLogData {
+pub struct CreateSubscriptionRequest {
     pub wallet_address: String,
-    pub from_token: String,
     pub to_token: String,
-    pub percentage: i16,
-    pub amount_from: i64,
-    pub amount_to: i64,
-    pub created_at: String,
+    pub from_token: Vec<String>,
+    pub percentage: Vec<i16>,
 }
 
 #[derive(Debug, Serialize)]
-pub struct ActivityLogGetResponse {
-    pub transactions: Vec<ActivityLogData>,
-    pub next_cursor: Option<String>,
+pub struct CreateSubscriptionResponse {
+    pub wallet_address: String,
 }
 
 #[derive(sqlx::Type)]
