@@ -45,7 +45,7 @@ impl IntoResponse for ApiError {
             ApiError::DatabaseError(ref err) => format!("{}", err),
             ApiError::InternalError(ref err) => format!("{}", err),
         };
-        error!("ERROR -------> {}", error_to_log);
+        error!("{}", error_to_log);
 
         // Error message to be sent to the API client.
         let resp = ApiErrorResp {
