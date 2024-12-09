@@ -8,6 +8,8 @@ mod subscription;
 mod transaction_logs;
 mod types;
 mod unsubscription;
+mod auto_swap;
+mod utils;
 use crate::AppState;
 
 // Application router.
@@ -22,4 +24,5 @@ pub fn router() -> Router<AppState> {
         .route("/unsubscribe", post(unsubscription::handle_unsubscribe))
         .route("/subscriptions", post(subscription::create_subscription))
         .route("/log_retrieval", get(activity_log_retrieval::log_retrieval))
+        .route("/auto_swaper", post(auto_swap::auto_swap))
 }
