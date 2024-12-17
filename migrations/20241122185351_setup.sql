@@ -57,4 +57,4 @@ create table transactions_log(
 
 SELECT trigger_updated_at('"transactions_log"');
 
-create index on transactions_log(wallet_address, created_at);
+create index on transactions_log(wallet_address, amount_to, from_token, to_token, created_at);

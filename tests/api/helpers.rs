@@ -3,7 +3,7 @@ use axum::{
     http::{Request, Response},
     Router,
 };
-use sqlx::{Connection, Executor, PgConnection};
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::sync::Once;
 use tower::ServiceExt;
 use uuid::Uuid;
@@ -52,4 +52,27 @@ pub async fn create_test_db(db_str: &str) -> String {
         .await
         .expect("Failed to create test DB.");
     db_str.to_owned()
+}
+
+pub async fn clean_database(pool: &PgPool) {
+    let _ = sqlx::query!("SELECT COUNT(*) FROM swap_subscription")
+        .fetch_one(pool)
+        .await
+        .unwrap_or_else(|_| panic!("Database tables not ready"));
+
+    sqlx::query!("DELETE FROM swap_subscription_from_token")
+        .execute(pool)
+        .await
+        .unwrap();
+    sqlx::query!("DELETE FROM swap_subscription")
+        .execute(pool)
+        .await
+        .unwrap();
+
+    let count = sqlx::query!("SELECT COUNT(*) as count FROM swap_subscription")
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+    println!("Database cleaned. Subscription count: {:?}", count.count);
 }

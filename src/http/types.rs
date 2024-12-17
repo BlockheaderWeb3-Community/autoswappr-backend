@@ -7,8 +7,11 @@ use time::OffsetDateTime;
 
 #[derive(Debug, Deserialize)]
 pub struct ActivityLogGetRequest {
+    pub wallet_address: Option<String>,
+    pub from_token: Option<String>,
+    pub to_token: Option<String>,
+    pub amount_to: Option<i64>,
     pub cursor: Option<String>,
-    pub limit: Option<i32>,
 }
 
 #[derive(FromRow, Debug, Serialize)]
@@ -107,4 +110,16 @@ impl<'de> Deserialize<'de> for TimeStamptz {
 
         deserializer.deserialize_str(StrVisitor)
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdatePercentageRequest {
+    pub wallet_address: String,
+    pub from_token: String,
+    pub percentage: i16,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UpdatePercentageResponse {
+    pub message: String,
 }

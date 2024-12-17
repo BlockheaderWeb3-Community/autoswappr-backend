@@ -1,4 +1,3 @@
-// use autoswappr_backend::{Db};
 use sqlx::PgPool;
 
 #[derive(Debug, Clone)]
@@ -41,25 +40,28 @@ impl TransactionLog {
         self.validate_amount(self.amount_from)?;
         Ok(())
     }
+
     fn validate_address(&self, address: &str) -> Result<(), String> {
-        if address.starts_with("0x")
+        match address.starts_with("0x")
             && address.len() == 42
             && address[2..].chars().all(|c| c.is_ascii_hexdigit())
         {
-            println!("length: {:?}", address.len());
-            return Ok(());
+            true => Ok(()),
+            false => Err("Invalid Address".to_owned()),
         }
-        Err("Invalid Address".to_owned())
     }
+
     fn validate_percentage(&self, percentage: u16) -> Result<(), String> {
-        if percentage > 100 {
-            return Err(String::from("Invalid percentage"));
+        match percentage == 0 && percentage > 100 {
+            true => Err(String::from("Invalid percentage")),
+            false => Ok(()),
         }
-        Ok(())
     }
+
     fn validate_amount(&self, _amount: u64) -> Result<(), String> {
         Ok(())
     }
+
     async fn save(&mut self, db: &PgPool) -> Result<(), String> {
         self.validate().map_err(|_| "Transaction log is invalid")?;
         let i_percentage = self.percentage as i16;

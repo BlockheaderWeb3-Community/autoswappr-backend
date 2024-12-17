@@ -3,32 +3,8 @@ use axum::{
     http::{header::CONTENT_TYPE, Request, StatusCode},
 };
 use serde_json::json;
-use sqlx::PgPool;
 
 use crate::helpers::*;
-
-async fn clean_database(pool: &PgPool) {
-    let _ = sqlx::query!("SELECT COUNT(*) FROM swap_subscription")
-        .fetch_one(pool)
-        .await
-        .unwrap_or_else(|_| panic!("Database tables not ready"));
-
-    sqlx::query!("DELETE FROM swap_subscription_from_token")
-        .execute(pool)
-        .await
-        .unwrap();
-    sqlx::query!("DELETE FROM swap_subscription")
-        .execute(pool)
-        .await
-        .unwrap();
-
-    let count = sqlx::query!("SELECT COUNT(*) as count FROM swap_subscription")
-        .fetch_one(pool)
-        .await
-        .unwrap();
-
-    println!("Database cleaned. Subscription count: {:?}", count.count);
-}
 
 #[tokio::test]
 async fn test_subscribe_ok() {

@@ -29,14 +29,13 @@ pub async fn log_transaction_to_db(
         &state.db.pool,
     )
     .await;
-    if tx.is_ok() {
-        Ok(Json(json!(
+    match tx.is_ok() {
+        true => Ok(Json(json!(
             {
                 "status": "success",
                 "message":"transaction logged successfully"
             }
-        )))
-    } else {
-        Err(ApiError::InvalidRequest(tx.err().unwrap()))
+        ))),
+        false => Err(ApiError::InvalidRequest(tx.err().unwrap())),
     }
 }

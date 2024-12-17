@@ -8,12 +8,12 @@ use crate::api_error::ApiError;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
+const LIMIT: i32 = 10;
+
 pub async fn log_retrieval(
     State(app_state): State<AppState>,
     Query(query_params): Query<ActivityLogGetRequest>,
 ) -> Result<Json<Value>, ApiError> {
-    // println!("\nLog Retrieval: {:?}\n", query_params);
-
     // Add default date if no cursor is provided
     let cursor: String = match query_params.cursor {
         Some(cursor1) => match OffsetDateTime::parse(&cursor1, &Rfc3339) {
@@ -26,41 +26,51 @@ pub async fn log_retrieval(
             now.format(&Rfc3339).unwrap()
         }
     };
-
-    let limit = match query_params.limit {
-        Some(l) => {
-            if !(1..=100).contains(&l) {
-                return Err(ApiError::InvalidRequest(
-                    "Limit must be a number between 1 and 100".to_string(),
-                ));
-            }
-            l
-        }
-        None => 10,
-    };
-
-    println!("Limit: {}", limit);
-    let rows: Vec<ActivityLogData> = sqlx::query_as::<_, ActivityLogData>(
-        r#"
-        SELECT 
+    let initial_query = r#"
+        SELECT
             wallet_address,
             from_token,
             to_token,
             amount_from,
             percentage,
             amount_to,
-            TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SSZ') AS created_at 
+            TO_CHAR(created_at, 'YYYY-MM-DD"T"HH24:MI:SSZ') AS created_at
         FROM transactions_log
         WHERE created_at < $1::TIMESTAMPTZ
+    "#;
+    let mut conditions = vec![];
+    if let Some(wallet_address) = query_params.wallet_address {
+        conditions.push(format!("AND wallet_address = '{}'", wallet_address));
+    }
+
+    if let Some(from_token) = query_params.from_token {
+        conditions.push(format!("AND from_token = '{}'", from_token));
+    }
+
+    if let Some(to_token) = query_params.to_token {
+        conditions.push(format!("AND to_token = '{}'", to_token));
+    }
+
+    if let Some(amount_to) = query_params.amount_to {
+        conditions.push(format!("AND amount_to = '{}'", amount_to));
+    }
+
+    let query_build = format!(
+        r#"
+        {}
+        {}
         ORDER BY created_at DESC
         LIMIT $2
         "#,
-    )
-    .bind(cursor)
-    .bind(limit)
-    .fetch_all(&app_state.db.pool)
-    .await
-    .map_err(ApiError::DatabaseError)?;
+        initial_query,
+        conditions.join(" ")
+    );
+    let rows: Vec<ActivityLogData> = sqlx::query_as::<_, ActivityLogData>(&query_build)
+        .bind(cursor)
+        .bind(LIMIT)
+        .fetch_all(&app_state.db.pool)
+        .await
+        .map_err(ApiError::DatabaseError)?;
 
     // Map results to the response data structure
     let mut response_data: ActivityLogGetResponse = ActivityLogGetResponse {
@@ -80,10 +90,21 @@ pub async fn log_retrieval(
     };
 
     // Check if there are more transactions
-    if response_data.transactions.len() == limit as usize {
-        let last_transaction = response_data.transactions.last().unwrap();
-        response_data.next_cursor = Some(last_transaction.created_at.clone());
-    }
+    match response_data.transactions.len() == LIMIT as usize {
+        true => {
+            response_data.next_cursor = Some(
+                response_data
+                    .transactions
+                    .last()
+                    .unwrap()
+                    .created_at
+                    .clone(),
+            );
+        }
+        false => {
+            response_data.next_cursor = None;
+        }
+    };
 
     Ok(Json(json!(response_data)))
 }
