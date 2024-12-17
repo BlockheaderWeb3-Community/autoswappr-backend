@@ -9,8 +9,6 @@ mod subscription;
 mod transaction_logs;
 mod types;
 mod unsubscription;
-mod auto_swap;
-mod utils;
 use crate::AppState;
 
 // Application router.

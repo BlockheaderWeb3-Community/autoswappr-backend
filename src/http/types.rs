@@ -33,30 +33,29 @@ pub struct ActivityLogGetResponse {
 
 #[derive(FromRow, Debug, Serialize)]
 pub struct SubscriptionData {
-    pub wallet_address: String, 
+    pub wallet_address: String,
     pub to_token: String,
-    pub is_active: bool
+    pub is_active: bool,
 }
 
 #[derive(FromRow, Debug, Serialize)]
 pub struct SwapSubscriptionFromTokenData {
-    pub wallet_address: String, 
+    pub wallet_address: String,
     pub from_token: String,
-    pub percentage: i16
+    pub percentage: i16,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AutoSwapRequest {
-    pub from : String,
-    pub to : String,
-    pub value : i64
+    pub from: String,
+    pub to: String,
+    pub value: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AutoSwapResponse {
     pub status: String,
-    pub message: String
+    pub message: String,
 }
 
 #[derive(Debug, Deserialize)]
