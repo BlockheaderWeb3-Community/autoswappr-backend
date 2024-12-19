@@ -1,5 +1,5 @@
-use autoswappr_backend::{service::auto_swap::swap, telemetry, Configuration, Db};
-use tokio::{net::TcpListener, task};
+use autoswappr_backend::{telemetry, Configuration, Db};
+use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() {
@@ -22,16 +22,6 @@ async fn main() {
     // Run migrations.
     tracing::debug!("Running Migrations");
     db.migrate().await.expect("Failed to run migrations");
-
-    tracing::info!("Running swap service");
-    task::spawn(async move {
-        if let Err(e) = swap().await {
-            tracing::error!("Swap function failed: {}", e);
-            Err(e) // Return the error
-        } else {
-            Ok(()) // Return Ok if no error
-        }
-    });
 
     // Listen for requests on specified port.
     tracing::info!("Starting server on {}", config.listen_address);
