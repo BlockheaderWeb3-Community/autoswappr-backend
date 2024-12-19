@@ -16,6 +16,11 @@ pub struct Configuration {
     pub app_port: u16,
     pub db_str: String,
     pub db_pool_max_size: u32,
+    pub rpc_url: String,
+    pub private_key: String,
+    pub owner_address: String,
+    pub autoswap_contract: String,
+    pub token_address: String,
 }
 
 // Environment application is running in.
@@ -46,6 +51,16 @@ impl Configuration {
         // 0.0.0.0 + Port to support containerisation.
         let listen_address = SocketAddr::from((Ipv6Addr::UNSPECIFIED, app_port));
 
+        let rpc_url = env_var("STARKNET_RPC_URL")
+            .parse::<String>()
+            .expect("Unable to parse the value of the STARKNET_RPC_URL environment variable. Please make sure it is a valid string.");
+
+        let autoswap_contract = env_var("AUTOSWAP_CONTRACT_ADDRESS")
+            .parse::<String>()
+            .expect("Unable to parse the value of the EKUBO_CONTRACT environment variable. Please make sure it is a valid string.");
+
+        let token_address = env_var("TOKEN_ADDRESS");
+
         // Configuration values to be safely shared across requests.
         Arc::new(Configuration {
             env,
@@ -53,6 +68,11 @@ impl Configuration {
             app_port,
             db_str,
             db_pool_max_size,
+            rpc_url,
+            private_key: env_var("PRIVATE_KEY"),
+            owner_address: env_var("OWNER_ADDRESS"),
+            autoswap_contract,
+            token_address,
         })
     }
 

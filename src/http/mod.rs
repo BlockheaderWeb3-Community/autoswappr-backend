@@ -3,6 +3,7 @@ use axum::{
     Router,
 };
 mod activity_log_retrieval;
+mod auto_swap;
 mod health_check;
 mod percentage_update;
 mod subscription;
@@ -27,4 +28,5 @@ pub fn router() -> Router<AppState> {
             "/update-percentage",
             post(percentage_update::update_percentage),
         )
+        .route("/auto-swap", post(auto_swap::auto_swap))
 }
