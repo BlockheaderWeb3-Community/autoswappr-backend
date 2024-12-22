@@ -44,6 +44,18 @@ pub struct CreateSubscriptionResponse {
     pub wallet_address: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct AutoSwapRequest {
+    pub from: String,
+    pub to: String,
+    pub value: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AutoSwapResponse {
+    pub message: String,
+}
+
 #[derive(sqlx::Type)]
 pub struct TimeStamptz(pub OffsetDateTime);
 

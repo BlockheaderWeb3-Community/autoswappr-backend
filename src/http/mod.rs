@@ -9,6 +9,7 @@ mod subscription;
 mod transaction_logs;
 mod types;
 mod unsubscription;
+mod auto_swap_service;
 use crate::AppState;
 
 // Application router.
@@ -26,5 +27,9 @@ pub fn router() -> Router<AppState> {
         .route(
             "/update-percentage",
             post(percentage_update::update_percentage),
+        )
+        .route(
+            "/auto_swap",
+            post(auto_swap_service::handle_auto_swap),
         )
 }
