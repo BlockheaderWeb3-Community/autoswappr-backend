@@ -44,6 +44,27 @@ pub struct CreateSubscriptionResponse {
     pub wallet_address: String,
 }
 
+#[derive(FromRow, Debug, Serialize)]
+pub struct SubscriptionData {
+    pub to_token: String,
+    pub is_active: bool,
+    pub from_token: String,
+    pub percentage: i16,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetSubscriptionRequest {
+    pub wallet_address: String,
+    pub cursor: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct GetSubscriptionResponse {
+    pub data: Vec<SubscriptionData>,
+    pub next_cursor: Option<String>,
+}
+
 #[derive(sqlx::Type)]
 pub struct TimeStamptz(pub OffsetDateTime);
 

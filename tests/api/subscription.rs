@@ -197,3 +197,17 @@ async fn test_invalid_to_token_address() {
     let resp = app.request(req).await;
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn test_successful_subscription_retrieval() {
+    let app = TestApp::new().await;
+
+    let req = Request::builder()
+        .method("GET")
+        .uri("/subscriptions?wallet_address=0x742d35Cc6634C0532925a3b844Bc454e4438f44e")
+        .header(CONTENT_TYPE, "application/json")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.request(req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+}

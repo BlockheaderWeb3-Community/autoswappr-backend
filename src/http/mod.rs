@@ -21,7 +21,10 @@ pub fn router() -> Router<AppState> {
             post(transaction_logs::log_transaction_to_db),
         )
         .route("/unsubscribe", post(unsubscription::handle_unsubscribe))
-        .route("/subscriptions", post(subscription::create_subscription))
+        .route(
+            "/subscriptions",
+            get(subscription::get_subscription).post(subscription::create_subscription),
+        )
         .route("/log_retrieval", get(activity_log_retrieval::log_retrieval))
         .route(
             "/update-percentage",
