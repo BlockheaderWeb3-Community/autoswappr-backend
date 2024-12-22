@@ -7,6 +7,7 @@ pub mod http;
 pub mod middleware;
 pub mod service;
 pub mod telemetry;
+pub mod utils;
 
 pub use config::*;
 pub use db::*;
