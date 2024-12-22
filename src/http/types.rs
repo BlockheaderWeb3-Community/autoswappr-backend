@@ -56,6 +56,35 @@ pub struct AutoSwapResponse {
     pub message: String,
 }
 
+#[derive(Debug, PartialEq, Eq, Deserialize, Clone, Encode, Decode)]
+pub struct PoolKey {
+    token0: Felt,
+    token1: Felt,
+    fee: u128,
+    tick_spacing: u128,
+    extension: Felt,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Encode, Decode)]
+pub struct RouteNode {
+    pub pool_key: PoolKey,
+    pub sqrt_ratio_limit: U256,
+    pub skip_ahead: u128,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
+pub struct TokenAmount {
+    pub token: Felt,
+    pub amount: i129,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Encode, Decode)]
+pub struct Swap {
+    pub route: Vec<RouteNode>,
+    pub token_amount: TokenAmount,
+}
+
+
 #[derive(sqlx::Type)]
 pub struct TimeStamptz(pub OffsetDateTime);
 
