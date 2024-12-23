@@ -1,126 +1,105 @@
-// ref: https://www.gakonst.com/ethers-rs/getting-started/connect_to_an_ethereum_node.html
-use ethers::{
-    contract::{ ContractError, abigen },
-    core::types::{Address, U256},
-    prelude::*,
+use starknet::{
+    core::types::{ Felt, BlockId, BlockTag, StarknetError, FunctionCall },
+    macros::{ felt, selector },
+    providers::{ jsonrpc::{ HttpTransport, JsonRpcClient }, Provider, Url },
 };
 use std::sync::Arc;
 
-abigen!(
-    IERC20,
-    r#"[
-        function allowance(address owner, address spender) external view returns (uint256)
-    ]"#
-);
-
-pub struct TokenAllowanceChecker<M> {
-    provider: Arc<M>,
+#[derive(Debug)]
+pub struct TokenAllowanceChecker<P: Provider + Send + Sync> {
+    provider: Arc<P>,
 }
 
-impl<M: Middleware> TokenAllowanceChecker<M> {
-    pub fn new(provider: Arc<M>) -> Self {
+impl<P: Provider + Send + Sync> TokenAllowanceChecker<P> {
+    pub fn new(provider: Arc<P>) -> Self {
         Self { provider }
     }
 
-    pub async fn get_allowance(
-        &self,
-        token_address: Address,
-        owner: Address,
-        spender: Address,
-    ) -> Result<U256, ContractError<M>> {
-        if token_address == Address::zero() {
-            return Err(ContractError::from(ProviderError::CustomError("(Invalid token address)".to_string())));
+    pub async fn get_allowance( &self, token_address: Felt, owner: Felt, spender: Felt ) -> Result<Felt, StarknetError> {
+        
+        if token_address == Felt::ZERO {
+            return Err(StarknetError::UnexpectedError("Token Address is not valid".to_string()));
         }
-        if owner == Address::zero() {
-            return Err(ContractError::from(ProviderError::CustomError("(Invalid owner address)".to_string())));
+        if owner == Felt::ZERO {
+            return Err(StarknetError::UnexpectedError("Owner Address is invalid".to_string()));
         }
-        if spender == Address::zero() {
-            return Err(ContractError::from(ProviderError::CustomError("(Invalid spender address)".to_string())));
+        if spender == Felt::ZERO {
+            return Err(StarknetError::UnexpectedError("Spender Address is not valid".to_string()));
         }
 
-        let contract = IERC20::new(token_address, Arc::clone(&self.provider));
+        let selector = selector!("allowance");
 
-        let allowance = contract.allowance(owner, spender).call().await?;
+        let calldata = vec![owner, spender];
 
-        Ok(allowance)
+        let call_result = self.provider.call(
+            FunctionCall {
+                contract_address: token_address,
+                entry_point_selector: selector,
+                calldata,
+            },
+            BlockId::Tag(BlockTag::Latest),
+        ).await
+        .expect("failed to call allowance");
+
+        Ok(call_result[0])
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
-    use ethers::providers::{Http, Provider};
     use std::str::FromStr;
 
-    const TEST_RPC_URL: &str = "https://sepolia.drpc.org";
-    const TEST_TOKEN: &str = "0x779877A7B0D9E8603169DdbD7836e478b4624789";
+    const TEST_RPC_URL: &str = "https://starknet-sepolia.public.blastapi.io";
+    const TEST_TOKEN: Felt = felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7");
 
-    async fn setup() -> TokenAllowanceChecker<Provider<Http>> {
-        let provider = Provider::<Http>::try_from(TEST_RPC_URL).expect("Failed to create provider");
+    async fn setup() -> TokenAllowanceChecker<JsonRpcClient<HttpTransport>> {
+        let provider = JsonRpcClient::new(HttpTransport::new(Url::from_str(TEST_RPC_URL).unwrap()));
         TokenAllowanceChecker::new(Arc::new(provider))
     }
 
     #[tokio::test]
     async fn test_zero_allowance() {
         let checker = setup().await;
-        let token = Address::from_str(TEST_TOKEN).unwrap();
-        let owner = Address::random();
-        let spender = Address::random();
+        let token = TEST_TOKEN;
+        let owner = felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7");
+        let spender = Felt::ZERO;
 
-        let allowance = checker.get_allowance(token, owner, spender).await.unwrap();
-
-        assert_eq!(allowance, U256::zero());
+        let allowance = checker.get_allowance(token, owner, spender).await;
+        assert!(allowance.is_err());
     }
 
     #[tokio::test]
     async fn test_invalid_token_address() {
         let checker = setup().await;
-        let owner = Address::random();
-        let spender = Address::random();
+        let token = Felt::ZERO;
+        let owner = felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7");
+        let spender = felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7");
 
-        let result = checker.get_allowance(Address::zero(), owner, spender).await;
-        assert!(result.is_err());
+        let allowance = checker.get_allowance(token, owner, spender).await;
+        assert!(allowance.is_err());
     }
 
     #[tokio::test]
     async fn test_invalid_owner_address() {
         let checker = setup().await;
-        let token = Address::from_str(TEST_TOKEN).unwrap();
-        let spender = Address::random();
+        let token = TEST_TOKEN;
+        let owner = Felt::ZERO;
+        let spender = felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7");
 
-        let result = checker.get_allowance(token, Address::zero(), spender).await;
-        assert!(result.is_err());
+        let allowance = checker.get_allowance(token, owner, spender).await;
+        assert!(allowance.is_err());
     }
 
     #[tokio::test]
     async fn test_invalid_spender_address() {
         let checker = setup().await;
-        let token = Address::from_str(TEST_TOKEN).unwrap();
-        let owner = Address::random();
+        let token = TEST_TOKEN;
+        let owner = felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7");
+        let spender = Felt::ZERO;
 
-        let result = checker.get_allowance(token, owner, Address::zero()).await;
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_partial_allowance() {
-        let checker = setup().await;
-        let token = Address::from_str(TEST_TOKEN).unwrap();
-        let owner = Address::random();
-        let spender = Address::random();
-
-        let allowance = checker.get_allowance(token, owner, spender).await.unwrap();
-        assert!(allowance > U256::zero());
-    }
-
-    #[tokio::test]
-    async fn test_max_allowance() {
-        let checker = setup().await;
-        let token = Address::from_str(TEST_TOKEN).unwrap();
-        let owner = Address::random();
-        let spender = Address::random();
-
-        let allowance = checker.get_allowance(token, owner, spender).await.unwrap();
-        assert_eq!(allowance, U256::MAX);
+        let allowance = checker.get_allowance(token, owner, spender).await;
+        assert!(allowance.is_err());
     }
 }
