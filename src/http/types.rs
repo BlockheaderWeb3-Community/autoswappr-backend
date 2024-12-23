@@ -1,9 +1,12 @@
 use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sqlx::FromRow;
+use starknet::core::types::Felt;
 use std::fmt::Formatter;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+use starknet::core::codec::{Decode, Encode};
+use starknet::core::types::U256;
 
 #[derive(Debug, Deserialize)]
 pub struct ActivityLogGetRequest {
@@ -58,11 +61,11 @@ pub struct AutoSwapResponse {
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Clone, Encode, Decode)]
 pub struct PoolKey {
-    token0: Felt,
-    token1: Felt,
-    fee: u128,
-    tick_spacing: u128,
-    extension: Felt,
+    pub token0: Felt,
+    pub token1: Felt,
+    pub fee: u128,
+    pub tick_spacing: u128,
+    pub extension: Felt,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Encode, Decode)]
@@ -72,15 +75,21 @@ pub struct RouteNode {
     pub skip_ahead: u128,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Encode, Decode)]
+pub struct I129 {
+    pub mag: u128,
+    pub sign: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode)]
 pub struct TokenAmount {
     pub token: Felt,
-    pub amount: i129,
+    pub amount: I129,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Encode, Decode)]
 pub struct Swap {
-    pub route: Vec<RouteNode>,
+    pub route: RouteNode,
     pub token_amount: TokenAmount,
 }
 
