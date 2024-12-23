@@ -50,6 +50,11 @@ mod tests {
 
     use super::*;
     use std::str::FromStr;
+    
+    /* # NOTE #
+     * Please make sure to set the correct TEST_RPC_URL and TEST_TOKEN before running the tests
+     * Also make sure to set the correct `owner`` and `spender` before running the tests
+     */
 
     const TEST_RPC_URL: &str = "https://starknet-sepolia.public.blastapi.io";
     const TEST_TOKEN: Felt = felt!("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7");
