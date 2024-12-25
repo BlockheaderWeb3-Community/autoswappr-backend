@@ -16,6 +16,7 @@ pub struct Configuration {
     pub app_port: u16,
     pub db_str: String,
     pub db_pool_max_size: u32,
+    pub rpc_url: String,
 }
 
 // Environment application is running in.
@@ -46,6 +47,8 @@ impl Configuration {
         // 0.0.0.0 + Port to support containerisation.
         let listen_address = SocketAddr::from((Ipv6Addr::UNSPECIFIED, app_port));
 
+        let rpc_url = env_var("RPC_PROVIDER_URL");
+
         // Configuration values to be safely shared across requests.
         Arc::new(Configuration {
             env,
@@ -53,6 +56,7 @@ impl Configuration {
             app_port,
             db_str,
             db_pool_max_size,
+            rpc_url,
         })
     }
 
