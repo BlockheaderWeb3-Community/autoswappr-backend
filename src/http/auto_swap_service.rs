@@ -1,14 +1,22 @@
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 
-use axum::{extract::State, Json, http::StatusCode};
-use super::types::{AutoSwapRequest, AutoSwapResponse, RouteNode, PoolKey, Swap, TokenAmount, I129};
+use super::types::{
+    AutoSwapRequest, AutoSwapResponse, PoolKey, RouteNode, Swap, TokenAmount, I129,
+};
 use crate::AppState;
+use axum::{extract::State, http::StatusCode, Json};
+use starknet::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+use starknet::core::codec::Encode;
+use starknet::signers::{LocalWallet, SigningKey};
 use starknet::{
-    core::types::{BlockId, BlockTag, Felt, FunctionCall, U256},
-    macros::{felt, selector},
+    core::{
+        chain_id,
+        types::{Call, Felt, U256},
+    },
+    macros::selector,
     providers::{
         jsonrpc::{HttpTransport, JsonRpcClient},
-        Provider, Url,
+        Url,
     },
 };
 
@@ -30,7 +38,6 @@ pub async fn handle_auto_swap(
     State(state): State<AppState>,
     Json(payload): Json<AutoSwapRequest>,
 ) -> Result<Json<AutoSwapResponse>, StatusCode> {
-
     dotenvy::dotenv().ok();
 
     if payload.value <= 0 || !payload.to.starts_with("0x") {
@@ -72,19 +79,33 @@ pub async fn handle_auto_swap(
     if let Some(preference) = swap_preferences {
         let from_token = preference.from_token;
         let percentage = preference.percentage;
-        let swap_amount:u128 = (payload.value * percentage as i64 / 100).try_into().unwrap();
+        let swap_amount: u128 = (payload.value * percentage as i64 / 100)
+            .try_into()
+            .unwrap();
 
         let rpc_url = std::env::var("RPC_URL").unwrap();
         let provider = create_rpc_provider(rpc_url.as_str()).unwrap();
+
+        let private_key = std::env::var("PRIVATE_KEY").unwrap();
+        let address = std::env::var("ADDRESS").unwrap();
+
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(
+            Felt::from_hex(&private_key).unwrap(),
+        ));
+        let address = Felt::from_hex(&address).unwrap();
+        let mut account = SingleOwnerAccount::new(
+            provider.clone(),
+            signer,
+            address,
+            chain_id::MAINNET,
+            ExecutionEncoding::New,
+        );
+
         let contract_address =
             Felt::from_hex("0x0199741822c2dc722f6f605204f35e56dbc23bceed54818168c4c49e4fb8737e")
                 .unwrap();
-        let token0 =
-            Felt::from_hex(from_token)
-                .unwrap();
-        let token1 =
-            Felt::from_hex(to_token)
-                .unwrap();
+        let token0 = Felt::from_hex(from_token).unwrap();
+        let token1 = Felt::from_hex(to_token).unwrap();
         let tick_spacing = (0.02 * 10000.0) as u128;
 
         let pool_key = PoolKey {
@@ -97,77 +118,50 @@ pub async fn handle_auto_swap(
 
         let route_node = RouteNode {
             pool_key,
-            sqrt_ratio_limit: U256::from(0),
+            sqrt_ratio_limit: U256::from(u128::MAX),
             skip_ahead: 0,
         };
 
-        let token_amount =  TokenAmount {
-                token: token0,
-                amount: I129 {
-                    mag: swap_amount,
-                    sign: false,
-                },
+        let token_amount = TokenAmount {
+            token: token0,
+            amount: I129 {
+                mag: swap_amount,
+                sign: false,
+            },
         };
 
-        let calldata = vec![
-            // RouteNode: PoolKey fields
-            pool_key.token0,
-            pool_key.token1,
-            Felt::from(pool_key.fee),
-            Felt::from(pool_key.tick_spacing),
-            pool_key.extension,
+        let swap: Swap = Swap {
+            route: route_node,
+            token_amount,
+        };
 
-            // RouteNode fields
-            Felt::from_str(&route_node.sqrt_ratio_limit.to_string()).unwrap(),
-            Felt::from(route_node.skip_ahead),
+        let mut serialized = vec![];
+        swap.encode(&mut serialized).unwrap();
 
-            // TokenAmount fields
-            token_amount.token,
-            Felt::from(token_amount.amount.mag),
-            if token_amount.amount.sign { Felt::ONE } else { Felt::ZERO },
-        ];
-
-
-        let swap_call = provider
-            .clone()
-            .call(
-                FunctionCall {
-                    contract_address,
-                    entry_point_selector: selector!("swap"),
-                    calldata,
-                },
-                BlockId::Tag(BlockTag::Latest),
-            )
+        let execution_result = account
+            .execute_v1(vec![Call {
+                to: contract_address,
+                selector: selector!("swap"),
+                calldata: serialized,
+            }])
+            .send()
             .await;
 
-        // match swap_call {
-        //     Ok(_) => {
-        //         Ok(Json(AutoSwapResponse {
-        //             message: format!(
-        //                 "Successfully swapped {} {} to {}",
-        //                 swap_amount, from_token, to_token
-        //             ),
-        //         }))
-        //     }
-        //     Err(e) => {
-        //         eprintln!("Swap call failed: {:?}", e);
-        //         Err(StatusCode::INTERNAL_SERVER_ERROR)
-        //     }
-        // }
-
-        // // TODO
-
-        // return Ok(Json(AutoSwapResponse {
-        //     message: format!(
-        //         "Successfully swapped {} {} to {}",
-        //         swap_amount, from_token, to_token
-        //     ),
-        // }));
+        match execution_result {
+            Ok(_) => Ok(Json(AutoSwapResponse {
+                message: format!(
+                    "Successfully swapped {} {} to {}",
+                    swap_amount, from_token, to_token
+                ),
+            })),
+            Err(e) => {
+                eprintln!("Swap call failed: {:?}", e);
+                Err(StatusCode::INTERNAL_SERVER_ERROR)
+            }
+        }
+    } else {
+        Ok(Json(AutoSwapResponse {
+            message: "No swap preferences found for this wallet address".to_string(),
+        }))
     }
-
-
-    Ok(Json(AutoSwapResponse {
-        message: "No swap preferences found for this wallet address".to_string(),
-    }))
 }
-
