@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::types::{
-    AutoSwapRequest, AutoSwapResponse, PoolKey, RouteNode, Swap, TokenAmount, I129,
+    AutoSwapRequest, AutoSwapResponse, PoolKey, I129, SwapParameters, SwapData
 };
 use crate::AppState;
 use axum::{extract::State, http::StatusCode, Json};
@@ -77,6 +77,8 @@ pub async fn handle_auto_swap(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if let Some(preference) = swap_preferences {
+        
+        let wallet_address = payload.to.clone();
         let from_token = preference.from_token;
         let percentage = preference.percentage;
         let swap_amount: u128 = (payload.value * percentage as i64 / 100)
@@ -87,13 +89,12 @@ pub async fn handle_auto_swap(
         let provider = create_rpc_provider(rpc_url.as_str()).unwrap();
 
         let private_key = std::env::var("PRIVATE_KEY").unwrap();
-        let address = std::env::var("ADDRESS").unwrap();
 
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(
             Felt::from_hex(&private_key).unwrap(),
         ));
-        let address = Felt::from_hex(&address).unwrap();
-        let mut account = SingleOwnerAccount::new(
+        let address = Felt::from_hex(&wallet_address).unwrap();
+        let account = SingleOwnerAccount::new(
             provider.clone(),
             signer,
             address,
@@ -103,10 +104,10 @@ pub async fn handle_auto_swap(
 
         let contract_address =
             Felt::from_hex("0x0199741822c2dc722f6f605204f35e56dbc23bceed54818168c4c49e4fb8737e")
-                .unwrap();
-        let token0 = Felt::from_hex(from_token).unwrap();
-        let token1 = Felt::from_hex(to_token).unwrap();
-        let tick_spacing = (0.02 * 10000.0) as u128;
+                .unwrap(); 
+        let token0 = Felt::from_hex(&from_token).unwrap();
+        let token1 = Felt::from_hex(&to_token).unwrap();
+        let tick_spacing = (1000) as u128;
 
         let pool_key = PoolKey {
             token0,
@@ -116,30 +117,38 @@ pub async fn handle_auto_swap(
             extension: Felt::ZERO,
         };
 
-        let route_node = RouteNode {
-            pool_key,
-            sqrt_ratio_limit: U256::from(u128::MAX),
-            skip_ahead: 0,
-        };
-
-        let token_amount = TokenAmount {
-            token: token0,
+        let swap_parameters = SwapParameters {
             amount: I129 {
                 mag: swap_amount,
                 sign: false,
             },
+            is_token1: false,
+            sqrt_ratio_limit: U256::from(18446744073709551615u64),  // min sqrt ratio limit
+            skip_ahead: 0,
         };
-
-        let swap: Swap = Swap {
-            route: route_node,
-            token_amount,
+        
+        let swap_data = SwapData {
+            params: swap_parameters,
+            pool_key,
+            caller: address,
         };
 
         let mut serialized = vec![];
-        swap.encode(&mut serialized).unwrap();
+        swap_data.encode(&mut serialized).unwrap();
+
+        let transfer_result = account.execute_v3(vec![Call {
+            to: token0,
+            selector: selector!("transfer"),
+            calldata: vec![contract_address, Felt::from(swap_amount)],
+        }]).send().await;
+
+        if transfer_result.is_err() {
+            eprintln!("Transfer call failed: {:?}", transfer_result.err());
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
 
         let execution_result = account
-            .execute_v1(vec![Call {
+            .execute_v3(vec![Call {
                 to: contract_address,
                 selector: selector!("swap"),
                 calldata: serialized,
