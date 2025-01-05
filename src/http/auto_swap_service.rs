@@ -11,7 +11,7 @@ use starknet::signers::{LocalWallet, SigningKey};
 use starknet::{
     core::{
         chain_id,
-        types::{Call, Felt, U256},
+        types::{Call, Felt, U256, BlockId, BlockTag},
     },
     macros::selector,
     providers::{
@@ -26,12 +26,6 @@ fn create_rpc_provider(
     let url = Url::parse(rpc_url)?;
     let provider = JsonRpcClient::new(HttpTransport::new(url));
     Ok(Arc::new(provider))
-}
-
-fn calculate_fee(fee_percentage: f64) -> u128 {
-    let fee_decimal = fee_percentage / 100.0;
-    let scale: f64 = 2.0f64.powi(128); // 2^128
-    (fee_decimal * scale).floor() as u128
 }
 
 pub async fn handle_auto_swap(
@@ -94,7 +88,7 @@ pub async fn handle_auto_swap(
             Felt::from_hex(&private_key).unwrap(),
         ));
         let address = Felt::from_hex(&wallet_address).unwrap();
-        let account = SingleOwnerAccount::new(
+        let mut account = SingleOwnerAccount::new(
             provider.clone(),
             signer,
             address,
@@ -103,7 +97,7 @@ pub async fn handle_auto_swap(
         );
 
         let contract_address =
-            Felt::from_hex("0x0199741822c2dc722f6f605204f35e56dbc23bceed54818168c4c49e4fb8737e")
+            Felt::from_hex("0x06657fa0b7490cea7fe27e7f955c6fff14e457d37dfa763d264a1b214d350065")
                 .unwrap(); 
         let token0 = Felt::from_hex(&from_token).unwrap();
         let token1 = Felt::from_hex(&to_token).unwrap();
@@ -112,7 +106,7 @@ pub async fn handle_auto_swap(
         let pool_key = PoolKey {
             token0,
             token1,
-            fee: calculate_fee(0.01),
+            fee: 170141183460469235273462165868118016,
             tick_spacing,
             extension: Felt::ZERO,
         };
@@ -123,7 +117,7 @@ pub async fn handle_auto_swap(
                 sign: false,
             },
             is_token1: false,
-            sqrt_ratio_limit: U256::from(18446744073709551615u64),  // min sqrt ratio limit
+            sqrt_ratio_limit: U256::from(18446748437148339061u128),  // min sqrt ratio limit
             skip_ahead: 0,
         };
         
@@ -133,28 +127,24 @@ pub async fn handle_auto_swap(
             caller: address,
         };
 
+        account.set_block_id(BlockId::Tag(BlockTag::Pending));
+
         let mut serialized = vec![];
         swap_data.encode(&mut serialized).unwrap();
 
-        let transfer_result = account.execute_v3(vec![Call {
+        let transfer_call = Call {
             to: token0,
             selector: selector!("transfer"),
-            calldata: vec![contract_address, Felt::from(swap_amount)],
-        }]).send().await;
+            calldata: vec![contract_address, Felt::from(swap_amount), Felt::ZERO],
+        };
 
-        if transfer_result.is_err() {
-            eprintln!("Transfer call failed: {:?}", transfer_result.err());
-            return Err(StatusCode::INTERNAL_SERVER_ERROR);
-        }
+        let swap_call = Call {
+            to: contract_address,
+            selector: selector!("swap"),
+            calldata: serialized,
+        };
 
-        let execution_result = account
-            .execute_v3(vec![Call {
-                to: contract_address,
-                selector: selector!("swap"),
-                calldata: serialized,
-            }])
-            .send()
-            .await;
+        let execution_result = account.execute_v3(vec![transfer_call, swap_call]).send().await;
 
         match execution_result {
             Ok(_) => Ok(Json(AutoSwapResponse {

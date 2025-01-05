@@ -48,7 +48,6 @@ pub struct CreateSubscriptionResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct AutoSwapRequest {
-    pub from: String,
     pub to: String,
     pub value: i64,
 }
