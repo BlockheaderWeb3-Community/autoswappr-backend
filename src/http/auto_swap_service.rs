@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use super::types::{
-    AutoSwapRequest, AutoSwapResponse, PoolKey, I129, SwapParameters, SwapData
-};
+use super::types::{AutoSwapRequest, AutoSwapResponse, PoolKey, SwapData, SwapParameters, I129};
 use crate::AppState;
 use axum::{extract::State, http::StatusCode, Json};
 use starknet::accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
@@ -11,7 +9,7 @@ use starknet::signers::{LocalWallet, SigningKey};
 use starknet::{
     core::{
         chain_id,
-        types::{Call, Felt, U256, BlockId, BlockTag},
+        types::{BlockId, BlockTag, Call, Felt, U256},
     },
     macros::selector,
     providers::{
@@ -71,7 +69,6 @@ pub async fn handle_auto_swap(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if let Some(preference) = swap_preferences {
-        
         let wallet_address = payload.to.clone();
         let from_token = preference.from_token;
         let percentage = preference.percentage;
@@ -98,7 +95,7 @@ pub async fn handle_auto_swap(
 
         let contract_address =
             Felt::from_hex("0x06657fa0b7490cea7fe27e7f955c6fff14e457d37dfa763d264a1b214d350065")
-                .unwrap(); 
+                .unwrap();
         let token0 = Felt::from_hex(&from_token).unwrap();
         let token1 = Felt::from_hex(&to_token).unwrap();
         let tick_spacing = (1000) as u128;
@@ -117,10 +114,10 @@ pub async fn handle_auto_swap(
                 sign: false,
             },
             is_token1: false,
-            sqrt_ratio_limit: U256::from(18446748437148339061u128),  // min sqrt ratio limit
+            sqrt_ratio_limit: U256::from(18446748437148339061u128), // min sqrt ratio limit
             skip_ahead: 0,
         };
-        
+
         let swap_data = SwapData {
             params: swap_parameters,
             pool_key,
@@ -144,7 +141,10 @@ pub async fn handle_auto_swap(
             calldata: serialized,
         };
 
-        let execution_result = account.execute_v3(vec![transfer_call, swap_call]).send().await;
+        let execution_result = account
+            .execute_v3(vec![transfer_call, swap_call])
+            .send()
+            .await;
 
         match execution_result {
             Ok(_) => Ok(Json(AutoSwapResponse {

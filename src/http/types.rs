@@ -1,11 +1,11 @@
 use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sqlx::FromRow;
+use starknet::core::codec::{Decode, Encode};
 use starknet::core::types::{Felt, U256};
 use std::fmt::Formatter;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
-use starknet::core::codec::{Decode, Encode};
 
 #[derive(Debug, Deserialize)]
 pub struct ActivityLogGetRequest {
