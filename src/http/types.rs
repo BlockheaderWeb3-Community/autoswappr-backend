@@ -128,3 +128,10 @@ pub struct UpdatePercentageRequest {
 pub struct UpdatePercentageResponse {
     pub message: String,
 }
+
+/// Returns true if the wallet address is valid.
+pub fn is_valid_address(address: &str) -> bool {
+    address.starts_with("0x")
+        && address.len() == 66
+        && address[2..].chars().all(|c| c.is_ascii_hexdigit())
+}

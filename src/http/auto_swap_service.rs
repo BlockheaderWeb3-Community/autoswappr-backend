@@ -1,4 +1,4 @@
-use super::types::{AutoSwapRequest, SuccessResponse};
+use super::types::{is_valid_address, AutoSwapRequest, SuccessResponse};
 use crate::utils::ekubo::ekubo_swap;
 use crate::AppState;
 use axum::{extract::State, http::StatusCode, Json};
@@ -16,7 +16,7 @@ pub async fn handle_auto_swap(
         value_received,
     } = payload;
 
-    if value_received <= 0 || !token_from.starts_with("0x") {
+    if value_received <= 0 || !is_valid_address(&token_from) {
         return Err(StatusCode::BAD_REQUEST);
     }
 
