@@ -1,8 +1,8 @@
 use axum::{extract::Query, extract::State, http::StatusCode, Json};
 
 use super::types::{
-    CreateSubscriptionRequest, GetSubscriptionRequest, GetSubscriptionResponse, SubscriptionData,
-    SuccessResponse,
+    is_valid_address, CreateSubscriptionRequest, GetSubscriptionRequest, GetSubscriptionResponse,
+    SubscriptionData, SuccessResponse,
 };
 use crate::api_error::ApiError;
 use crate::AppState;
@@ -28,11 +28,7 @@ pub async fn create_subscription(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    if !to_token.starts_with("0x") || to_token.len() != 66 {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    if !wallet_address.starts_with("0x") || wallet_address.len() != 66 {
+    if !is_valid_address(&to_token) || !is_valid_address(&wallet_address) {
         return Err(StatusCode::BAD_REQUEST);
     }
 

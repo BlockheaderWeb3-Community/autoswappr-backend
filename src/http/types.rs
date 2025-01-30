@@ -5,6 +5,9 @@ use std::fmt::Formatter;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
+pub const ADDRESS_PREFIX: &str = "0x";
+pub const ADDRESS_LENGTH: usize = 66;
+
 #[derive(Debug, Deserialize)]
 pub struct ActivityLogGetRequest {
     pub wallet_address: Option<String>,
@@ -127,4 +130,43 @@ pub struct UpdatePercentageRequest {
 #[derive(Debug, Serialize)]
 pub struct UpdatePercentageResponse {
     pub message: String,
+}
+
+/// Returns true if the wallet address is valid.
+pub fn is_valid_address(address: &str) -> bool {
+    address.starts_with(ADDRESS_PREFIX)
+        && address.len() == ADDRESS_LENGTH
+        && address[2..].chars().all(|c| c.is_ascii_hexdigit())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_address() {
+        assert!(is_valid_address(
+            "0x40ca979f20ed76f960dc719457eaf0cef3b2c3932d58435b9192a58bc56c1e40"
+        ));
+    }
+
+    #[test]
+    fn test_invalid_addresses() {
+        let long_zeros = "0".repeat(64);
+        let long_as = "a".repeat(67);
+
+        let invalid_addresses = vec![
+            "",
+            "0x",
+            "0x123",
+            "123456",
+            "0xXYZabc",
+            &long_zeros,
+            &long_as,
+        ];
+
+        for addr in invalid_addresses {
+            assert!(!is_valid_address(addr));
+        }
+    }
 }

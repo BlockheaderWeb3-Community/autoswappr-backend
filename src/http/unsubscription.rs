@@ -1,7 +1,7 @@
 use axum::{extract::State, Json};
 use serde::Deserialize;
 
-use super::types::SuccessResponse;
+use super::types::{is_valid_address, SuccessResponse};
 use crate::{api_error::ApiError, AppState};
 
 #[derive(Debug, Deserialize)]
@@ -20,14 +20,14 @@ pub async fn handle_unsubscribe(
     } = payload;
 
     // Validate wallet_address format
-    if !wallet_address.starts_with("0x") || wallet_address.len() != 66 {
+    if !is_valid_address(&wallet_address) {
         return Err(ApiError::InvalidRequest(
             "Invalid wallet address format".to_string(),
         ));
     }
 
     // Validate from_token format
-    if !from_token.starts_with("0x") || from_token.len() != 66 {
+    if !is_valid_address(&from_token) {
         return Err(ApiError::InvalidRequest(
             "Invalid token address format".to_string(),
         ));
