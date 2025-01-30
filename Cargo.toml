@@ -11,8 +11,9 @@ path = "src/main.rs"
 name = "autoswappr_backend"
 
 [dependencies]
-axum = "0.7.9"
-tokio = { version = "1.41.1", features = ["full"] }
+ethers = { version = "2.0", features = ["ws"] }
+tokio = { version = "1.0", features = ["full", "test-util"] }
+dotenv = "0.15"
 reqwest = { version = "0.12.9", features = ["json"] }
 tower-http = { version = "0.6.1", features = [
     "trace",

@@ -5,3 +5,4 @@ mod percentage_update;
 mod subscription;
 mod transaction_logs;
 mod unsubscription;
+mod token_allowance;
